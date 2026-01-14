@@ -88,7 +88,7 @@ float calculateConnectionBallRadius(int dim, int samplesCount)
 void multiplyArrays(float* A, float* B, float* C, int rowsA, int colsA, int rowsB, int colsB)
 {
 	if (colsA != rowsB)
-		std::cout << " ERROR: Matrix dimensions do not match: [" << rowsA << "x" << colsA << "] * [" << rowsB << "x" << colsB << "]" << std::cout;
+		std::cout << " ERROR: Matrix dimensions do not match: [" << rowsA << "x" << colsA << "] * [" << rowsB << "x" << colsB << "]" << std::endl;
 	int inners = colsA;
 	for (int i = 0; i < rowsA; ++i)
 	    for (int j = 0; j < colsB; ++j) {

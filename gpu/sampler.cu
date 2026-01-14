@@ -146,3 +146,67 @@ bool sampleFreePt(float* obstacles, int obstaclesCount, float* sample)
 	}
 	return true;
 }
+
+__global__ 
+void sampleFreeBubble(float* obstacles, int obstaclesCount, float* samples, float* radii, bool* isFreeSamples, float *debugOutput) 
+{
+	int node = blockIdx.x * blockDim.x + threadIdx.x;
+	if (node >= NUM) 
+		return;
+
+	float nodeLoc[3];
+	for (int d = 0; d < 3; ++d) {
+		nodeLoc[d] = samples[node*DIM+d];
+	}
+
+	for (int obs_idx = 0; obs_idx < obstaclesCount; ++obs_idx) {
+		bool notFree = true;
+		for (int d = 0; d < 3; ++d) {
+			// obstacles has pairs of start_coord and end_coord, 
+			// so you check if node is b/w start and end coord
+			notFree = notFree && 
+			nodeLoc[d] > obstacles[obs_idx*2*DIM + d] && 
+			nodeLoc[d] < obstacles[obs_idx*2*DIM + DIM + d];
+
+			if (!notFree) {
+				// Set radius if the bounds are closer than the previous ones or if unset
+				if (radii[node] > (nodeLoc[d] - obstacles[obs_idx*2*DIM + DIM + d]) || radii[node] == 0)
+					radii[node] = (nodeLoc[d] - obstacles[obs_idx*2*DIM + DIM + d]);
+				if (radii[node] > (obstacles[obs_idx*2*DIM + d] - nodeLoc[d]) || radii[node] == 0)
+					radii[node] = (obstacles[obs_idx*2*DIM + d] - nodeLoc[d]);
+				break;
+			}
+		}
+		if (notFree) {
+			// If not valid set rad = -1
+			isFreeSamples[node] = false;
+			radii[node] = -1;
+			return;
+		}
+	}
+	isFreeSamples[node] = true;
+}
+
+void createSamplesHaltonBubble(int skip, float *samples, float *radii, float *initial, float *goal, float *lo, float *hi) 
+{ 	
+	int numPrimes = 25;
+	if (skip + DIM > numPrimes) {
+		std::cout << "in sampler.cu: skip in creating halton seq too high" << std::endl;
+		return;
+	}
+	int bases[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 
+		43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+
+	for (int n = 0; n < NUM; ++n) {
+		for (int d = 0; d < DIM; ++d) {
+			samples[n*DIM + d] = localHaltonSingleNumber(n, bases[d + skip])*(hi[d] - lo[d]) + lo[d];
+		}
+		radii[n] = 0;
+	}
+
+	// replace goal and initial nodes
+	for (int d = 0; d < DIM; ++d) {
+		samples[d] = initial[d];
+		samples[(NUM-1)*DIM + d] = goal[d];
+	}
+}

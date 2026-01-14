@@ -9,7 +9,7 @@ SRC=*.cu
 
 EXPERIMENT=mainExperiment.cu motionPlanningProblem.cu motionPlanningSolution.cu collisionCheck.cu obstacles.cu helper.cu 2pBVP.cu sampler.cu GMT.cu
 DUBINS=mainDubins.cu motionPlanningProblem.cu motionPlanningSolution.cu collisionCheck.cu obstacles.cu helper.cu 2pBVP.cu sampler.cu GMT.cu PRM.cu FMT.cu dubinsAirplane.cu
-GROUND=mainGround.cu motionPlanningProblem.cu motionPlanningSolution.cu collisionCheck.cu obstacles.cu helper.cu 2pBVP.cu sampler.cu GMT.cu PRM.cu FMT.cu dubinsAirplane.cu
+GROUND=mainGround.cu motionPlanningProblem.cu motionPlanningSolution.cu collisionCheck.cu obstacles.cu helper.cu 2pBVP.cu sampler.cu GMT.cu GMTB.cu PRM.cu FMT.cu dubinsAirplane.cu
 SIM=mainSim.cu motionPlanningProblem.cu motionPlanningSolution.cu collisionCheck.cu obstacles.cu helper.cu 2pBVP.cu sampler.cu GMT.cu PRM.cu FMT.cu dynamics.cu
 
 main: $(SRC)

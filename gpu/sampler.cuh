@@ -21,3 +21,8 @@ __global__ void sampleFree(float* obstacles, int obstaclesCount, float* samples,
 __global__ void fillSamples(float* samples, float* samplesAll, int* sampleFreeIdx, bool* isFreeSamples, float *debugOutput);
 __global__ void createSortHeuristic(float* samples, int initial_idx, float* heuristic, int samplesCount);
 bool sampleFreePt(float* obstacles, int obstaclesCount, float* sample);
+
+// Bubble algos
+__global__ void sampleFreeBubble(float* obstacles, int obstaclesCount, float* samples, float* radii, bool* isFreeSamples, float *debugOutput);
+
+void createSamplesHaltonBubble(int skip, float *samples, float *radii, float *initial, float *goal, float *lo, float *hi);

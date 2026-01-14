@@ -33,6 +33,7 @@ Run instructions:
 #include "sampler.cuh"
 #include "2pBVP.cuh"
 #include "GMT.cuh"
+#include "GMTB.cuh"
 #include "PRM.cuh"
 #include "FMT.cuh"
 
@@ -199,11 +200,19 @@ int main(int argc, const char* argv[]) {
 
 	// Sampling- to allow more parallelism we sample NUM points on X here (rather than Xfree)
 	// and perform sample free online once obstacles are known.
+
+	// Init radii of bubbles to 0 (no collision checking here)
 	std::vector<float> samplesAll (DIM*NUM);
-	createSamplesHalton(0, samplesAll.data(), &(init[0]), &(goal[0]), lo, hi);
+	std::vector<float> radiiAll (NUM);
+	// SAMPLES MADE HERE!!!! we just validate them moving forward holy moly
+	createSamplesHaltonBubble(0, samplesAll.data(), radiiAll.data(), &(init[0]), &(goal[0]), lo, hi);
 	thrust::device_vector<float> d_samples_thrust(DIM*NUM);
+	thrust::device_vector<float> d_radii_thrust(NUM);
+	
 	float *d_samples = thrust::raw_pointer_cast(d_samples_thrust.data());
+	float *d_radii = thrust::raw_pointer_cast(d_radii_thrust.data());
 	CUDA_ERROR_CHECK(cudaMemcpy(d_samples, samplesAll.data(), sizeof(float)*DIM*NUM, cudaMemcpyHostToDevice));
+	CUDA_ERROR_CHECK(cudaMemcpy(d_radii, radiiAll.data(), sizeof(float)*NUM, cudaMemcpyHostToDevice));
 
 	// calculate nn
 	double t_calc10thStart = std::clock();
@@ -366,8 +375,8 @@ int main(int argc, const char* argv[]) {
 	const int gridSizeSF = std::min((NUM + blockSizeSF - 1) / blockSizeSF, 2147483647);
 	if (gridSizeSF == 2147483647)
 		std::cout << "...... ERROR: increase grid size for sampleFree" << std::endl;
-	sampleFree<<<gridSizeSF, blockSizeSF>>>(
-		d_obstacles, numObstacles, d_samples, d_isFreeSamples, d_debugOutput);
+	sampleFreeBubble<<<gridSizeSF, blockSizeSF>>>(
+		d_obstacles, numObstacles, d_samples, d_radii, d_isFreeSamples, d_debugOutput);
 	cudaDeviceSynchronize();
 	code = cudaPeekAtLastError();
 	if (cudaSuccess != code) { std::cout << "ERROR on freeEdges: " << cudaGetErrorString(code) << std::endl; }
@@ -399,6 +408,20 @@ int main(int argc, const char* argv[]) {
 
 	true && printSolution(NUM, d_samples, d_edges_ptr, d_costs);
 	matlabData.close();
+
+	// ***************** GMTBubble
+	double t_gmtbStart = std::clock();
+	std::cout << "Running wavefront expansion GMT with Bubbles" << std::endl;
+	GMTBwavefront(&(init[0]), &(goal[0]), d_obstacles, numObstacles,
+		d_distancesCome, d_nnGoEdges, d_nnComeEdges, maxNNSize, d_discMotions, d_nnIdxs,
+		d_samples, d_radii, NUM, d_isFreeSamples, rn, numDisc,
+		d_costs, d_edges_ptr, initIdx, goalIdx) ;
+
+	double t_gmtb = (std::clock() - t_gmtbStart) / (double) CLOCKS_PER_SEC;
+	std::cout << "******** GMT with Bubbles took: " << t_gmtb << " s" << std::endl;
+	float costGoalB = 0;
+	cudaMemcpy(&costGoalB, d_costs+goalIdx, sizeof(float), cudaMemcpyDeviceToHost);
+	std::cout << "Solution cost: " << costGoalB << std::endl;
 
 	// ***************** PRM
 	std::vector<float> costs(NUM,10000);
