@@ -5,6 +5,11 @@ Author: Arihant Jain
 Group Marching Tree algorithm, using Bubble point sampling
 */
 
+// TODOs: 
+// - Add radii relation to edges for cost
+// - isMotionValid using radii
+// - Euclidean distance for sampleFreeBubble
+// - Better integration of radii to the code so we can actually add them to the graph
 #pragma once
 
 #include <thrust/device_vector.h>
